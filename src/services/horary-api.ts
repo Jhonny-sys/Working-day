@@ -1,4 +1,4 @@
-import type { Jornada, JornadaForm, Metricas } from '@/types/horary';
+import type { Inscripcion, InscripcionForm, Jornada, JornadaForm, Metricas } from '@/types/horary';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
@@ -26,6 +26,14 @@ export function createJornada(form: JornadaForm) {
   });
 }
 
+export function updateJornada(id: string, form: JornadaForm) {
+  return request<Jornada>(`/api/jornadas/${id}`, { method: 'PUT', body: JSON.stringify({ ...form, cupoTotal: Number(form.cupoTotal) }) });
+}
+
 export function deactivateJornada(id: string) {
   return request<Jornada>(`/api/jornadas/${id}`, { method: 'DELETE' });
 }
+
+export function listInscripciones(id: string) { return request<Inscripcion[]>(`/api/jornadas/${id}/inscripciones`); }
+export function createInscripcion(id: string, form: InscripcionForm) { return request<Inscripcion>(`/api/jornadas/${id}/inscripciones`, { method: 'POST', body: JSON.stringify(form) }); }
+export function cancelInscripcion(id: string) { return request<Inscripcion>(`/api/inscripciones/${id}`, { method: 'DELETE' }); }

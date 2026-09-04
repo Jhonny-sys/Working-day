@@ -1,9 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { CreateInscripcionModal } from '@/components/CreateInscripcionModal';
 import { CreateJornadaModal } from '@/components/CreateJornadaModal';
-import { createJornada, deactivateJornada, getDashboardData } from '@/services/horary-api';
-import type { Jornada, JornadaForm, Metricas } from '@/types/horary';
+import { cancelInscripcion, createInscripcion, createJornada, deactivateJornada, getDashboardData, listInscripciones, updateJornada } from '@/services/horary-api';
+import type { Inscripcion, InscripcionForm, Jornada, JornadaForm, Metricas } from '@/types/horary';
 
 function formatMonth(date: string) {
   return new Date(`${date}T00:00:00`).toLocaleDateString('es-CO', { month: 'short' }).replace('.', '').toUpperCase();
@@ -14,6 +15,9 @@ export default function Home() {
   const [metricas, setMetricas] = useState<Metricas | null>(null);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
+  const [editing, setEditing] = useState<Jornada | null>(null);
+  const [registering, setRegistering] = useState<Jornada | null>(null);
+  const [inscripciones, setInscripciones] = useState<Record<string, Inscripcion[]>>({});
   const [message, setMessage] = useState('');
 
   async function loadData() {
@@ -53,6 +57,28 @@ export default function Home() {
     }
   }
 
+  async function handleEdit(form: JornadaForm) {
+    if (!editing) return;
+    try { await updateJornada(editing.id, form); setEditing(null); setMessage('Jornada actualizada correctamente.'); await loadData(); }
+    catch (error) { setMessage(error instanceof Error ? error.message : 'No se pudo actualizar la jornada'); }
+  }
+
+  async function handleRegister(form: InscripcionForm) {
+    if (!registering) return;
+    try { await createInscripcion(registering.id, form); setRegistering(null); setMessage('Inscripción confirmada.'); await loadData(); }
+    catch (error) { setMessage(error instanceof Error ? error.message : 'No se pudo registrar la inscripción'); }
+  }
+
+  async function showInscripciones(jornada: Jornada) {
+    try { setInscripciones({ ...inscripciones, [jornada.id]: await listInscripciones(jornada.id) }); }
+    catch (error) { setMessage(error instanceof Error ? error.message : 'No se pudieron cargar las inscripciones'); }
+  }
+
+  async function handleCancelInscripcion(id: string, jornadaId: string) {
+    try { await cancelInscripcion(id); await showInscripciones(jornadas.find((item) => item.id === jornadaId)!); await loadData(); }
+    catch (error) { setMessage(error instanceof Error ? error.message : 'No se pudo cancelar la inscripción'); }
+  }
+
   return (
     <main className="shell">
       <header className="topbar">
@@ -78,7 +104,7 @@ export default function Home() {
           <div className="journey-list">{jornadas.map((jornada) => (
             <article className="journey" key={jornada.id}>
               <div className="date-block"><strong>{new Date(`${jornada.fecha}T00:00:00`).getDate()}</strong><span>{formatMonth(jornada.fecha)}</span></div>
-              <div className="journey-info"><h3>{jornada.nombre}</h3><p>{jornada.sede} <span>·</span> {jornada.cupoDisponible} cupos libres</p></div>
+              <div className="journey-info"><h3>{jornada.nombre}</h3><p>{jornada.sede} <span>·</span> {jornada.cupoDisponible} cupos libres</p><div className="journey-actions"><button className="action-button" disabled={!jornada.cupoDisponible} onClick={() => setRegistering(jornada)}>Inscribir persona</button><button className="action-button" onClick={() => setEditing(jornada)}>Editar</button><button className="action-button" onClick={() => showInscripciones(jornada)}>Ver inscritos</button></div></div>
               <div className="capacity"><div><span>Capacidad</span><strong>{jornada.cupoOcupado}/{jornada.cupoTotal}</strong></div><div className="bar"><i style={{ width: `${jornada.cupoTotal ? Math.min((jornada.cupoOcupado / jornada.cupoTotal) * 100, 100) : 0}%` }} /></div></div>
               <button className="quiet-button" onClick={() => handleDeactivate(jornada.id)}>Desactivar</button>
             </article>
@@ -87,6 +113,9 @@ export default function Home() {
       </section>
 
       <CreateJornadaModal open={modalOpen} onClose={() => setModalOpen(false)} onSubmit={handleCreate} />
+      {editing && <CreateJornadaModal open onClose={() => setEditing(null)} onSubmit={handleEdit} mode="edit" initialValue={{ nombre: editing.nombre, sede: editing.sede, fecha: editing.fecha, cupoTotal: String(editing.cupoTotal) }} />}
+      {registering && <CreateInscripcionModal open jornadaNombre={registering.nombre} onClose={() => setRegistering(null)} onSubmit={handleRegister} />}
+      {Object.entries(inscripciones).map(([jornadaId, items]) => <section className="registrations" key={jornadaId}><div className="section-heading"><h2>Personas inscritas</h2><button className="refresh" onClick={() => setInscripciones({ ...inscripciones, [jornadaId]: [] })}>Cerrar</button></div>{items.length === 0 ? <p className="empty">No hay inscripciones confirmadas.</p> : items.map((item) => <div className="registration" key={item.id}><span>{item.nombreCompleto}</span><small>{item.correo} · {item.numeroDocumento}</small><button className="quiet-button" onClick={() => handleCancelInscripcion(item.id, jornadaId)}>Cancelar</button></div>)}</section>)}
     </main>
   );
 }

@@ -21,3 +21,6 @@ export type JornadaForm = {
   fecha: string;
   cupoTotal: string;
 };
+
+export type Inscripcion = { id: string; jornadaId: string; nombreCompleto: string; tipoDocumento: string; numeroDocumento: string; correo: string; estado: string };
+export type InscripcionForm = { nombreCompleto: string; tipoDocumento: string; numeroDocumento: string; correo: string };

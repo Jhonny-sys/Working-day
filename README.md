@@ -14,7 +14,7 @@ Este proyecto es independiente de `Horary-back`.
 
 ```bash
 cd Horary-front
-cp .env.example .env.local
+printf 'NEXT_PUBLIC_API_URL=http://localhost:3000\n' > .env.local
 npm install
 npm run dev
 ```
@@ -47,6 +47,8 @@ NEXT_PUBLIC_API_URL=http://localhost:3000
 ```
 
 `NEXT_PUBLIC_API_URL` apunta al API Gateway de Horary. No se guardan credenciales de PostgreSQL en el frontend.
+
+La única plantilla `.env.example` del proyecto está en `Horary-back` y se mantiene ignorada por Git. El frontend solo necesita crear `.env.local` con la variable pública indicada.
 
 ## Arquitectura del frontend
 

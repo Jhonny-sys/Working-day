@@ -3,8 +3,13 @@
 import { useEffect, useState } from 'react';
 import { CreateInscripcionModal } from '@/components/CreateInscripcionModal';
 import { CreateJornadaModal } from '@/components/CreateJornadaModal';
-import { cancelInscripcion, createInscripcion, createJornada, deactivateJornada, getDashboardData, listInscripciones, listTiposDocumento, updateJornada } from '@/services/horary-api';
+import { ConfirmModal } from '@/components/ConfirmModal';
+import { RegistrationsModal } from '@/components/RegistrationsModal';
+import { DateRangeField } from '@/components/DateRangeField';
+import { activateJornada, cancelInscripcion, createInscripcion, createJornada, deactivateJornada, getDashboardData, listInscripciones, listTiposDocumento, updateJornada } from '@/services/horary-api';
 import type { Inscripcion, InscripcionForm, Jornada, JornadaForm, Metricas, TipoDocumento } from '@/types/horary';
+
+type PendingConfirmation = { type: 'jornada' | 'activar'; jornada: Jornada } | { type: 'inscripcion'; id: string; jornadaId: string } | null;
 
 function formatMonth(date: string) {
   return new Date(`${date}T00:00:00`).toLocaleDateString('es-CO', { month: 'short' }).replace('.', '').toUpperCase();
@@ -19,12 +24,18 @@ export default function Home() {
   const [registering, setRegistering] = useState<Jornada | null>(null);
   const [inscripciones, setInscripciones] = useState<Record<string, Inscripcion[]>>({});
   const [tiposDocumento, setTiposDocumento] = useState<TipoDocumento[]>([]);
+  const [selectedRegistrations, setSelectedRegistrations] = useState<{ jornada: Jornada; items: Inscripcion[] } | null>(null);
   const [message, setMessage] = useState('');
+  const [pendingConfirmation, setPendingConfirmation] = useState<PendingConfirmation>(null);
+  const [statusFilter, setStatusFilter] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   async function loadData() {
     setLoading(true);
     try {
-      const [[jornadasData, metricasData], tipos] = await Promise.all([getDashboardData(), listTiposDocumento()]);
+      const [[jornadasData, metricasData], tipos] = await Promise.all([getDashboardData({ estado: statusFilter, fechaDesde: dateFrom, fechaHasta: dateTo }), listTiposDocumento()]);
       setJornadas(jornadasData);
       setMetricas(metricasData);
       setTiposDocumento(tipos);
@@ -36,7 +47,7 @@ export default function Home() {
     }
   }
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { loadData(); }, [statusFilter, dateFrom, dateTo]);
 
   async function handleCreate(form: JornadaForm) {
     try {
@@ -59,6 +70,11 @@ export default function Home() {
     }
   }
 
+  async function handleActivate(jornada: Jornada) {
+    try { await activateJornada(jornada); setMessage('Jornada activada nuevamente.'); await loadData(); }
+    catch (error) { setMessage(error instanceof Error ? error.message : 'No se pudo activar la jornada'); }
+  }
+
   async function handleEdit(form: JornadaForm) {
     if (!editing) return;
     try { await updateJornada(editing.id, form); setEditing(null); setMessage('Jornada actualizada correctamente.'); await loadData(); }
@@ -72,13 +88,27 @@ export default function Home() {
   }
 
   async function showInscripciones(jornada: Jornada) {
-    try { setInscripciones({ ...inscripciones, [jornada.id]: await listInscripciones(jornada.id) }); }
+    try { const items = await listInscripciones(jornada.id); setInscripciones({ ...inscripciones, [jornada.id]: items }); setSelectedRegistrations({ jornada, items }); }
     catch (error) { setMessage(error instanceof Error ? error.message : 'No se pudieron cargar las inscripciones'); }
   }
 
   async function handleCancelInscripcion(id: string, jornadaId: string) {
     try { await cancelInscripcion(id); await showInscripciones(jornadas.find((item) => item.id === jornadaId)!); await loadData(); }
     catch (error) { setMessage(error instanceof Error ? error.message : 'No se pudo cancelar la inscripción'); }
+  }
+
+  function requestCancelInscripcion(id: string) {
+    if (!selectedRegistrations) return;
+    setPendingConfirmation({ type: 'inscripcion', id, jornadaId: selectedRegistrations.jornada.id });
+  }
+
+  async function confirmPendingAction() {
+    const action = pendingConfirmation;
+    setPendingConfirmation(null);
+    if (!action) return;
+    if (action.type === 'jornada') await handleDeactivate(action.jornada.id);
+    if (action.type === 'activar') await handleActivate(action.jornada);
+    if (action.type === 'inscripcion') await handleCancelInscripcion(action.id, action.jornadaId);
   }
 
   return (
@@ -100,15 +130,21 @@ export default function Home() {
       </section>
 
       <section className="workspace">
-        <div className="section-heading"><div><p className="eyebrow">Programación activa</p><h2>Jornadas disponibles</h2></div><button className="refresh" onClick={loadData}>Actualizar</button></div>
+        <div className="section-heading"><div><p className="eyebrow">Programación</p><h2>Todas las jornadas</h2></div><button className="refresh" onClick={loadData}>Actualizar</button></div>
+        <div className="filter-toolbar"><button className={`filter-toggle ${filtersOpen ? 'open' : ''}`} onClick={() => setFiltersOpen(!filtersOpen)} aria-expanded={filtersOpen}>Filtrar <span>⌄</span></button>{(statusFilter || dateFrom || dateTo) && <span className="filter-count">Filtros activos</span>}</div>
+        {filtersOpen && <div className="filters" aria-label="Filtros de jornadas">
+          <label className="status-filter">Estado<select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}><option value="">Todas</option><option value="activa">Activas</option><option value="inactiva">Inactivas</option></select></label>
+          <div className="date-range"><span>Rango de fechas</span><DateRangeField from={dateFrom} to={dateTo} onApply={(from, to) => { setDateFrom(from); setDateTo(to); }} /></div>
+          {(statusFilter || dateFrom || dateTo) && <button className="clear-filter" onClick={() => { setStatusFilter(''); setDateFrom(''); setDateTo(''); }}>Limpiar filtros</button>}
+        </div>}
         {message && <p className="notice" role="status">{message}</p>}
         {loading ? <p className="empty">Cargando jornadas...</p> : jornadas.length === 0 ? <p className="empty">No hay jornadas activas con cupos disponibles.</p> : (
           <div className="journey-list">{jornadas.map((jornada) => (
             <article className="journey" key={jornada.id}>
               <div className="date-block"><strong>{new Date(`${jornada.fecha}T00:00:00`).getDate()}</strong><span>{formatMonth(jornada.fecha)}</span></div>
-              <div className="journey-info"><h3>{jornada.nombre}</h3><p>{jornada.sede} <span>·</span> {jornada.cupoDisponible} cupos libres</p><div className="journey-actions"><button className="action-button" disabled={!jornada.cupoDisponible} onClick={() => setRegistering(jornada)}>Inscribir persona</button><button className="action-button" onClick={() => setEditing(jornada)}>Editar</button><button className="action-button" onClick={() => showInscripciones(jornada)}>Ver inscritos</button></div></div>
+              <div className="journey-info"><div className="journey-title"><h3>{jornada.nombre}</h3><span className={`status-badge ${jornada.activa ? 'active' : 'inactive'}`}>{jornada.activa ? 'Activa' : 'Inactiva'}</span></div><p>{jornada.sede} <span>·</span> {jornada.cupoDisponible} cupos libres</p><div className="journey-actions"><button className="action-button" disabled={!jornada.activa || !jornada.cupoDisponible} onClick={() => setRegistering(jornada)}>{!jornada.activa ? 'Jornada inactiva' : jornada.cupoDisponible ? 'Inscribir persona' : 'Sin cupos'}</button><button className="action-button" onClick={() => setEditing(jornada)}>Editar</button><button className="action-button" onClick={() => showInscripciones(jornada)}>Ver inscritos</button></div></div>
               <div className="capacity"><div><span>Capacidad</span><strong>{jornada.cupoOcupado}/{jornada.cupoTotal}</strong></div><div className="bar"><i style={{ width: `${jornada.cupoTotal ? Math.min((jornada.cupoOcupado / jornada.cupoTotal) * 100, 100) : 0}%` }} /></div></div>
-              <button className="quiet-button" onClick={() => handleDeactivate(jornada.id)}>Desactivar</button>
+              {jornada.activa ? <button className="quiet-button" onClick={() => setPendingConfirmation({ type: 'jornada', jornada })}>Desactivar</button> : <button className="quiet-button activate-button" onClick={() => setPendingConfirmation({ type: 'activar', jornada })}>Activar</button>}
             </article>
           ))}</div>
         )}
@@ -117,7 +153,15 @@ export default function Home() {
       <CreateJornadaModal open={modalOpen} onClose={() => setModalOpen(false)} onSubmit={handleCreate} />
       {editing && <CreateJornadaModal open onClose={() => setEditing(null)} onSubmit={handleEdit} mode="edit" initialValue={{ nombre: editing.nombre, sede: editing.sede, fecha: editing.fecha, cupoTotal: String(editing.cupoTotal) }} />}
       {registering && <CreateInscripcionModal open jornadaNombre={registering.nombre} tiposDocumento={tiposDocumento} onClose={() => setRegistering(null)} onSubmit={handleRegister} />}
-      {Object.entries(inscripciones).map(([jornadaId, items]) => <section className="registrations" key={jornadaId}><div className="section-heading"><h2>Personas inscritas</h2><button className="refresh" onClick={() => setInscripciones({ ...inscripciones, [jornadaId]: [] })}>Cerrar</button></div>{items.length === 0 ? <p className="empty">No hay inscripciones confirmadas.</p> : items.map((item) => <div className="registration" key={item.id}><span>{item.nombreCompleto}</span><small>{item.correo} · {item.numeroDocumento}</small><button className="quiet-button" onClick={() => handleCancelInscripcion(item.id, jornadaId)}>Cancelar</button></div>)}</section>)}
+      {selectedRegistrations && <RegistrationsModal open jornadaNombre={selectedRegistrations.jornada.nombre} items={selectedRegistrations.items} onClose={() => setSelectedRegistrations(null)} onCancel={requestCancelInscripcion} />}
+      <ConfirmModal
+        open={Boolean(pendingConfirmation)}
+        title={pendingConfirmation?.type === 'jornada' ? '¿Desactivar jornada?' : pendingConfirmation?.type === 'activar' ? '¿Activar jornada nuevamente?' : '¿Cancelar inscripción?'}
+        description={pendingConfirmation?.type === 'jornada' ? 'La jornada dejará de estar disponible y no recibirá nuevas inscripciones.' : pendingConfirmation?.type === 'activar' ? 'La jornada volverá a estar disponible para nuevas inscripciones.' : 'La persona perderá su cupo en esta jornada. Esta acción se puede revisar desde el listado de inscritos.'}
+        confirmLabel={pendingConfirmation?.type === 'jornada' ? 'Sí, desactivar' : pendingConfirmation?.type === 'activar' ? 'Sí, activar' : 'Sí, cancelar'}
+        onCancel={() => setPendingConfirmation(null)}
+        onConfirm={confirmPendingAction}
+      />
     </main>
   );
 }

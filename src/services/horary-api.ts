@@ -12,9 +12,13 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   return body;
 }
 
-export function getDashboardData() {
+export function getDashboardData(filters: { estado: string; fechaDesde: string; fechaHasta: string }) {
+  const params = new URLSearchParams();
+  if (filters.estado) params.set('estado', filters.estado);
+  if (filters.fechaDesde) params.set('fechaDesde', filters.fechaDesde);
+  if (filters.fechaHasta) params.set('fechaHasta', filters.fechaHasta);
   return Promise.all([
-    request<Jornada[]>('/api/jornadas?estado=activa&filtroCupo=con_cupo'),
+    request<Jornada[]>(`/api/jornadas${params.toString() ? `?${params.toString()}` : ''}`),
     request<Metricas>('/api/metricas'),
   ]);
 }
@@ -28,6 +32,10 @@ export function createJornada(form: JornadaForm) {
 
 export function updateJornada(id: string, form: JornadaForm) {
   return request<Jornada>(`/api/jornadas/${id}`, { method: 'PUT', body: JSON.stringify({ ...form, cupoTotal: Number(form.cupoTotal) }) });
+}
+
+export function activateJornada(jornada: Jornada) {
+  return request<Jornada>(`/api/jornadas/${jornada.id}`, { method: 'PUT', body: JSON.stringify({ nombre: jornada.nombre, sede: jornada.sede, fecha: jornada.fecha, cupoTotal: jornada.cupoTotal, activa: true }) });
 }
 
 export function deactivateJornada(id: string) {

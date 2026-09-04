@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react';
 import { CreateInscripcionModal } from '@/components/CreateInscripcionModal';
 import { CreateJornadaModal } from '@/components/CreateJornadaModal';
-import { cancelInscripcion, createInscripcion, createJornada, deactivateJornada, getDashboardData, listInscripciones, updateJornada } from '@/services/horary-api';
-import type { Inscripcion, InscripcionForm, Jornada, JornadaForm, Metricas } from '@/types/horary';
+import { cancelInscripcion, createInscripcion, createJornada, deactivateJornada, getDashboardData, listInscripciones, listTiposDocumento, updateJornada } from '@/services/horary-api';
+import type { Inscripcion, InscripcionForm, Jornada, JornadaForm, Metricas, TipoDocumento } from '@/types/horary';
 
 function formatMonth(date: string) {
   return new Date(`${date}T00:00:00`).toLocaleDateString('es-CO', { month: 'short' }).replace('.', '').toUpperCase();
@@ -18,14 +18,16 @@ export default function Home() {
   const [editing, setEditing] = useState<Jornada | null>(null);
   const [registering, setRegistering] = useState<Jornada | null>(null);
   const [inscripciones, setInscripciones] = useState<Record<string, Inscripcion[]>>({});
+  const [tiposDocumento, setTiposDocumento] = useState<TipoDocumento[]>([]);
   const [message, setMessage] = useState('');
 
   async function loadData() {
     setLoading(true);
     try {
-      const [jornadasData, metricasData] = await getDashboardData();
+      const [[jornadasData, metricasData], tipos] = await Promise.all([getDashboardData(), listTiposDocumento()]);
       setJornadas(jornadasData);
       setMetricas(metricasData);
+      setTiposDocumento(tipos);
       setMessage('');
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'No se pudo conectar con la API');
@@ -114,7 +116,7 @@ export default function Home() {
 
       <CreateJornadaModal open={modalOpen} onClose={() => setModalOpen(false)} onSubmit={handleCreate} />
       {editing && <CreateJornadaModal open onClose={() => setEditing(null)} onSubmit={handleEdit} mode="edit" initialValue={{ nombre: editing.nombre, sede: editing.sede, fecha: editing.fecha, cupoTotal: String(editing.cupoTotal) }} />}
-      {registering && <CreateInscripcionModal open jornadaNombre={registering.nombre} onClose={() => setRegistering(null)} onSubmit={handleRegister} />}
+      {registering && <CreateInscripcionModal open jornadaNombre={registering.nombre} tiposDocumento={tiposDocumento} onClose={() => setRegistering(null)} onSubmit={handleRegister} />}
       {Object.entries(inscripciones).map(([jornadaId, items]) => <section className="registrations" key={jornadaId}><div className="section-heading"><h2>Personas inscritas</h2><button className="refresh" onClick={() => setInscripciones({ ...inscripciones, [jornadaId]: [] })}>Cerrar</button></div>{items.length === 0 ? <p className="empty">No hay inscripciones confirmadas.</p> : items.map((item) => <div className="registration" key={item.id}><span>{item.nombreCompleto}</span><small>{item.correo} · {item.numeroDocumento}</small><button className="quiet-button" onClick={() => handleCancelInscripcion(item.id, jornadaId)}>Cancelar</button></div>)}</section>)}
     </main>
   );

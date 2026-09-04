@@ -24,3 +24,4 @@ export type JornadaForm = {
 
 export type Inscripcion = { id: string; jornadaId: string; nombreCompleto: string; tipoDocumento: string; numeroDocumento: string; correo: string; estado: string };
 export type InscripcionForm = { nombreCompleto: string; tipoDocumento: string; numeroDocumento: string; correo: string };
+export type TipoDocumento = { codigo: string; nombre: string; categoria: string };

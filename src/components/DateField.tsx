@@ -33,11 +33,11 @@ export function DateField({ value, onChange, required = false }: Props) {
 
   return <div className="date-picker" ref={wrapperRef}>
     <button type="button" className="date-trigger" onClick={() => setOpen(!open)} aria-expanded={open}>
-      <span className="calendar-icon" aria-hidden="true">▣</span><span>{value ? selected.toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'Selecciona una fecha'}</span><span className="date-chevron">⌄</span>
+      <span className="calendar-icon" aria-hidden="true">▣</span><span>{value ? selected.toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'Selecciona una fecha'}</span><i className={`dropdown-chevron ${open ? 'up' : ''}`} />
     </button>
     {required && <input className="date-required" tabIndex={-1} required={!value} value={value} onChange={() => undefined} aria-label="Fecha" />}
     {open && <div className="calendar-popover" role="dialog" aria-label="Calendario">
-      <div className="calendar-header"><button type="button" onClick={() => changeMonth(-1)} aria-label="Mes anterior">‹</button><strong>{monthNames[view.getMonth()]} de {view.getFullYear()}</strong><button type="button" onClick={() => changeMonth(1)} aria-label="Mes siguiente">›</button></div>
+      <div className="calendar-header"><button type="button" className="chevron-button previous" onClick={() => changeMonth(-1)} aria-label="Mes anterior"><i /></button><strong>{monthNames[view.getMonth()]} de {view.getFullYear()}</strong><button type="button" className="chevron-button next" onClick={() => changeMonth(1)} aria-label="Mes siguiente"><i /></button></div>
       <div className="calendar-week">{weekDays.map((day) => <span key={day}>{day}</span>)}</div>
       <div className="calendar-grid">{days.map((day, index) => day ? <button type="button" key={`${day}-${index}`} className={value === toKey(new Date(view.getFullYear(), view.getMonth(), day)) ? 'selected-day' : ''} onClick={() => selectDay(day)}>{day}</button> : <span key={`empty-${index}`} />)}</div>
       <button type="button" className="calendar-today" onClick={() => { onChange(toKey(today)); setView(new Date(today.getFullYear(), today.getMonth(), 1)); setOpen(false); }}>Hoy</button>

@@ -15,6 +15,12 @@ function formatMonth(date: string) {
   return new Date(`${date}T00:00:00`).toLocaleDateString('es-CO', { month: 'short' }).replace('.', '').toUpperCase();
 }
 
+function isPastDate(date: string) {
+  const today = new Date();
+  const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  return date < todayKey;
+}
+
 export default function Home() {
   const [jornadas, setJornadas] = useState<Jornada[]>([]);
   const [metricas, setMetricas] = useState<Metricas | null>(null);
@@ -83,6 +89,11 @@ export default function Home() {
 
   async function handleRegister(form: InscripcionForm) {
     if (!registering) return;
+    if (isPastDate(registering.fecha)) {
+      setRegistering(null);
+      setMessage('No se puede inscribir a una jornada con fecha ya cumplida.');
+      return;
+    }
     try { await createInscripcion(registering.id, form); setRegistering(null); setMessage('Inscripción confirmada.'); await loadData(); }
     catch (error) { setMessage(error instanceof Error ? error.message : 'No se pudo registrar la inscripción'); }
   }
@@ -131,7 +142,7 @@ export default function Home() {
 
       <section className="workspace">
         <div className="section-heading"><div><p className="eyebrow">Programación</p><h2>Todas las jornadas</h2></div><button className="refresh" onClick={loadData}>Actualizar</button></div>
-        <div className="filter-toolbar"><button className={`filter-toggle ${filtersOpen ? 'open' : ''}`} onClick={() => setFiltersOpen(!filtersOpen)} aria-expanded={filtersOpen}>Filtrar <span>⌄</span></button>{(statusFilter || dateFrom || dateTo) && <span className="filter-count">Filtros activos</span>}</div>
+        <div className="filter-toolbar"><button className={`filter-toggle ${filtersOpen ? 'open' : ''}`} onClick={() => setFiltersOpen(!filtersOpen)} aria-expanded={filtersOpen}>Filtrar <i className="dropdown-chevron" /></button>{(statusFilter || dateFrom || dateTo) && <span className="filter-count">Filtros activos</span>}</div>
         {filtersOpen && <div className="filters" aria-label="Filtros de jornadas">
           <label className="status-filter">Estado<select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}><option value="">Todas</option><option value="activa">Activas</option><option value="inactiva">Inactivas</option></select></label>
           <div className="date-range"><span>Rango de fechas</span><DateRangeField from={dateFrom} to={dateTo} onApply={(from, to) => { setDateFrom(from); setDateTo(to); }} /></div>
@@ -142,7 +153,7 @@ export default function Home() {
           <div className="journey-list">{jornadas.map((jornada) => (
             <article className="journey" key={jornada.id}>
               <div className="date-block"><strong>{new Date(`${jornada.fecha}T00:00:00`).getDate()}</strong><span>{formatMonth(jornada.fecha)}</span></div>
-              <div className="journey-info"><div className="journey-title"><h3>{jornada.nombre}</h3><span className={`status-badge ${jornada.activa ? 'active' : 'inactive'}`}>{jornada.activa ? 'Activa' : 'Inactiva'}</span></div><p>{jornada.sede} <span>·</span> {jornada.cupoDisponible} cupos libres</p><div className="journey-actions"><button className="action-button" disabled={!jornada.activa || !jornada.cupoDisponible} onClick={() => setRegistering(jornada)}>{!jornada.activa ? 'Jornada inactiva' : jornada.cupoDisponible ? 'Inscribir persona' : 'Sin cupos'}</button><button className="action-button" onClick={() => setEditing(jornada)}>Editar</button><button className="action-button" onClick={() => showInscripciones(jornada)}>Ver inscritos</button></div></div>
+              <div className="journey-info"><div className="journey-title"><h3>{jornada.nombre}</h3><span className={`status-badge ${jornada.activa ? 'active' : 'inactive'}`}>{jornada.activa ? 'Activa' : 'Inactiva'}</span></div><p>{jornada.sede} <span>·</span> {jornada.cupoDisponible} cupos libres</p><div className="journey-actions"><button className="action-button" disabled={!jornada.activa || !jornada.cupoDisponible || isPastDate(jornada.fecha)} onClick={() => setRegistering(jornada)}>{!jornada.activa ? 'Jornada inactiva' : isPastDate(jornada.fecha) ? 'Fecha cumplida' : jornada.cupoDisponible ? 'Inscribir persona' : 'Sin cupos'}</button><button className="action-button" onClick={() => setEditing(jornada)}>Editar</button><button className="action-button" onClick={() => showInscripciones(jornada)}>Ver inscritos</button></div></div>
               <div className="capacity"><div><span>Capacidad</span><strong>{jornada.cupoOcupado}/{jornada.cupoTotal}</strong></div><div className="bar"><i style={{ width: `${jornada.cupoTotal ? Math.min((jornada.cupoOcupado / jornada.cupoTotal) * 100, 100) : 0}%` }} /></div></div>
               {jornada.activa ? <button className="quiet-button" onClick={() => setPendingConfirmation({ type: 'jornada', jornada })}>Desactivar</button> : <button className="quiet-button activate-button" onClick={() => setPendingConfirmation({ type: 'activar', jornada })}>Activar</button>}
             </article>

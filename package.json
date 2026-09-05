@@ -1,0 +1,23 @@
+{
+  "name": "working-day",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Working-day: monorepo combinado (back + front) con arranque unico y .env raiz",
+  "workspaces": [
+    "back",
+    "front"
+  ],
+  "scripts": {
+    "postinstall": "node scripts/setup-env.js",
+    "dev": "dotenv -e .env -- concurrently -n back,front -c blue,magenta \"npm run dev -w horary-back\" \"npm run dev -w horary-front\"",
+    "build": "dotenv -e .env -- npm run build -w horary-front",
+    "start": "dotenv -e .env -- concurrently -n back,front -c blue,magenta \"npm run start -w horary-back\" \"npm run start -w horary-front\"",
+    "docker:down": "npm run docker:down -w horary-back",
+    "verify:concurrency": "dotenv -e .env -- npm run verify:concurrency -w horary-back"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "dotenv-cli": "^8.0.0"
+  }
+}

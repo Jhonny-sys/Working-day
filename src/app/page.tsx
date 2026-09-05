@@ -84,7 +84,7 @@ export default function Home() {
   async function handleEdit(form: JornadaForm) {
     if (!editing) return;
     try { await updateJornada(editing.id, form); setEditing(null); setMessage('Jornada actualizada correctamente.'); await loadData(); }
-    catch (error) { setMessage(error instanceof Error ? error.message : 'No se pudo actualizar la jornada'); }
+    catch (error) { setMessage(error instanceof Error ? error.message : 'No se pudo actualizar la jornada'); throw error; }
   }
 
   async function handleRegister(form: InscripcionForm) {
@@ -162,7 +162,7 @@ export default function Home() {
       </section>
 
       <CreateJornadaModal open={modalOpen} onClose={() => setModalOpen(false)} onSubmit={handleCreate} />
-      {editing && <CreateJornadaModal open onClose={() => setEditing(null)} onSubmit={handleEdit} mode="edit" initialValue={{ nombre: editing.nombre, sede: editing.sede, fecha: editing.fecha, cupoTotal: String(editing.cupoTotal) }} />}
+      {editing && <CreateJornadaModal open onClose={() => setEditing(null)} onSubmit={handleEdit} mode="edit" minCupo={editing.cupoOcupado} initialValue={{ nombre: editing.nombre, sede: editing.sede, fecha: editing.fecha, cupoTotal: String(editing.cupoTotal) }} />}
       {registering && <CreateInscripcionModal open jornadaNombre={registering.nombre} tiposDocumento={tiposDocumento} onClose={() => setRegistering(null)} onSubmit={handleRegister} />}
       {selectedRegistrations && <RegistrationsModal open jornadaNombre={selectedRegistrations.jornada.nombre} items={selectedRegistrations.items} onClose={() => setSelectedRegistrations(null)} onCancel={requestCancelInscripcion} />}
       <ConfirmModal

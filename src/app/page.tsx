@@ -129,6 +129,8 @@ export default function Home() {
         <div className="topbar-actions"><span className="status"><i /> Servicios operativos</span><button className="primary-button topbar-button" onClick={() => setModalOpen(true)}>+ Nueva jornada</button></div>
       </header>
 
+      {message && <p className="global-notice" role="alert">{message}</p>}
+
       <section className="intro">
         <div><p className="eyebrow">Panel de coordinación</p><h1>Jornadas que<br /><em>sí caben.</em></h1></div>
         <p className="intro-copy">Administra fechas, sedes y capacidad desde un solo lugar. La operación vive en el panel; las acciones aparecen cuando las necesitas.</p>
@@ -148,7 +150,6 @@ export default function Home() {
           <div className="date-range"><span>Rango de fechas</span><DateRangeField from={dateFrom} to={dateTo} onApply={(from, to) => { setDateFrom(from); setDateTo(to); }} /></div>
           {(statusFilter || dateFrom || dateTo) && <button className="clear-filter" onClick={() => { setStatusFilter(''); setDateFrom(''); setDateTo(''); }}>Limpiar filtros</button>}
         </div>}
-        {message && <p className="notice" role="status">{message}</p>}
         {loading ? <p className="empty">Cargando jornadas...</p> : jornadas.length === 0 ? <p className="empty">No hay jornadas activas con cupos disponibles.</p> : (
           <div className="journey-list">{jornadas.map((jornada) => (
             <article className="journey" key={jornada.id}>

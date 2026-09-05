@@ -1,6 +1,8 @@
 import type { Inscripcion, InscripcionForm, Jornada, JornadaForm, Metricas, TipoDocumento } from '@/types/horary';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
+if (!API_URL) throw new Error('Falta la variable de entorno requerida: NEXT_PUBLIC_API_URL');
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${API_URL}${path}`, {

@@ -15,6 +15,11 @@ function formatMonth(date: string) {
   return new Date(`${date}T00:00:00`).toLocaleDateString('es-CO', { month: 'short' }).replace('.', '').toUpperCase();
 }
 
+function formatLastRegistration(date: string | null) {
+  if (!date) return 'Sin registros';
+  return new Date(date).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' }).replace('.', '');
+}
+
 function isPastDate(date: string) {
   const today = new Date();
   const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
@@ -140,6 +145,7 @@ export default function Home() {
         <div><span>Jornadas activas</span><strong>{metricas?.totalJornadasActivas ?? '-'}</strong></div>
         <div><span>Inscripciones confirmadas</span><strong>{metricas?.totalInscripcionesConfirmadas ?? '-'}</strong></div>
         <div><span>Ocupación global</span><strong>{metricas ? `${metricas.porcentajeOcupacionGlobal}%` : '-'}</strong></div>
+        <div><span>Última inscripción</span><strong className="metric-date">{metricas ? formatLastRegistration(metricas.ultimaInscripcionRegistrada) : '-'}</strong></div>
       </section>
 
       <section className="workspace">

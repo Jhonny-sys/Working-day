@@ -13,6 +13,7 @@ export type Metricas = {
   totalJornadasActivas: number;
   totalInscripcionesConfirmadas: number;
   porcentajeOcupacionGlobal: number;
+  ultimaInscripcionRegistrada: string | null;
 };
 
 export type JornadaForm = {

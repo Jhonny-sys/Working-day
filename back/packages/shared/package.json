@@ -1,0 +1,12 @@
+{
+  "name": "@horary/shared",
+  "version": "1.0.0",
+  "private": true,
+  "main": "src/index.js",
+  "type": "module",
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "pg": "^8.13.3",
+    "zod": "^3.24.2"
+  }
+}

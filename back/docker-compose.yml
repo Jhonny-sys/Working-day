@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: horary-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-horary}
+      POSTGRES_USER: ${POSTGRES_USER:-horary}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-horary_secret}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - horary_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-horary} -d ${POSTGRES_DB:-horary}"]
+      interval: 3s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  horary_pg_data:

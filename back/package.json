@@ -1,0 +1,27 @@
+{
+  "name": "horary-back",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Backend microservicios - Jornadas Cruz Roja",
+  "workspaces": [
+    "packages/shared",
+    "services/gateway",
+    "services/jornadas-service",
+    "services/inscripciones-service"
+  ],
+  "scripts": {
+    "docker:up": "docker compose up -d --wait",
+    "docker:down": "docker compose down",
+    "migrate": "node scripts/migrate.js",
+    "dev:services": "concurrently -n gateway,jornadas,inscripciones -c blue,green,yellow \"npm run dev -w @horary/gateway\" \"npm run dev -w @horary/jornadas-service\" \"npm run dev -w @horary/inscripciones-service\"",
+    "dev": "npm run docker:up && npm run migrate && npm run dev:services",
+    "start": "npm run docker:up && npm run migrate && npm run start:services",
+    "start:services": "concurrently -n gateway,jornadas,inscripciones -c blue,green,yellow \"npm run start -w @horary/gateway\" \"npm run start -w @horary/jornadas-service\" \"npm run start -w @horary/inscripciones-service\"",
+    "verify:concurrency": "node scripts/concurrency-check.js"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "dotenv": "^16.4.7"
+  }
+}

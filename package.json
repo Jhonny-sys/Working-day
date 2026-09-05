@@ -6,6 +6,8 @@
   "description": "Working-day: monorepo combinado (back + front) con arranque unico y .env raiz",
   "workspaces": [
     "back",
+    "back/packages/*",
+    "back/services/*",
     "front"
   ],
   "scripts": {

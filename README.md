@@ -10,12 +10,11 @@ Aplicación interna para publicar jornadas con cupo limitado y gestionar las ins
 |---|---|
 | Node.js | 20 LTS o superior (recomendado) |
 | Arquitectura | Microservicios (API Gateway + 2 servicios de dominio) vía npm workspaces |
-| Express | ⚠️ confirmar versión exacta en `back/services/gateway/package.json` |
-| PostgreSQL (driver `pg`) | ⚠️ confirmar versión exacta en `back/packages/shared/package.json` |
+| Express | ^4.21.2` |
+| PostgreSQL (driver `pg`) | ^8.13.3 |
 | concurrently | ^9.1.2 |
 | dotenv | ^16.4.7 |
 
-> Nota: el `package.json` raíz del backend (`horary-back`) solo trae `concurrently` y `dotenv` como dependencias propias — Express, el cliente `pg` y la librería de validación viven en `packages/shared` y en cada servicio. Reemplaza las dos filas marcadas con ⚠️ por los valores reales antes de entregar.
 
 ### Frontend (`front/`)
 
